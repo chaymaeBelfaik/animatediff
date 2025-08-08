@@ -1,10 +1,10 @@
 __pycache__/
 *.py[cod]
 /output/
-/input/
-!/input/example.png
+# /input/
+# !/input/example.png
 /models/
-/temp/
+# /temp/
 /custom_nodes/
 !custom_nodes/example_node.py.example
 extra_model_paths.yaml
@@ -17,7 +17,7 @@ venv/
 !/web/extensions/logging.js.example
 !/web/extensions/core/
 /tests-ui/data/object_info.json
-/user/
+# /user/
 *.log
 web_custom_versions/
 .DS_Store
