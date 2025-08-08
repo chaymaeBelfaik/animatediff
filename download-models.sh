@@ -9,10 +9,10 @@ echo "🚀 Starting AnimateDiff models download..."
 
 # Create necessary directories
 echo "📁 Creating model directories..."
-mkdir -p /workspace/ComfyUI/models/{checkpoints,controlnet,animatediff_models,vae}
+mkdir -p /workspace/animatediff/models/{checkpoints,controlnet,animatediff_models,vae}
 
 # Base directory for models
-MODELS_DIR="/workspace/ComfyUI/models"
+MODELS_DIR="/workspace/animatediff/models"
 
 echo "⬇️  Downloading models..."
 
