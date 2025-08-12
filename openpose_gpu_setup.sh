@@ -67,7 +67,7 @@ else
 fi
 
 # Check if cuDNN is available
-if [ ! -d "/usr/local/cuda/include/cudnn.h" ] && [ ! -d "/usr/include/cudnn.h" ]; then
+if [ ! -f "/usr/local/cuda/include/cudnn.h" ] && [ ! -f "/usr/include/cudnn.h" ]; then
     print_warning "cuDNN not found in standard locations. OpenPose may not work optimally without cuDNN."
     print_status "Consider installing cuDNN for better performance: https://developer.nvidia.com/cudnn"
 else
@@ -86,26 +86,16 @@ print_success "Git found"
 if ! command -v cmake &> /dev/null; then
     print_status "CMake not found. Installing CMake..."
     if command -v apt-get &> /dev/null; then
-        apt-get update
-        apt-get install -y cmake
+        sudo apt-get update
+        sudo apt-get install -y cmake
     elif command -v yum &> /dev/null; then
-        yum install -y cmake
+        sudo yum install -y cmake
     elif command -v dnf &> /dev/null; then
-        dnf install -y cmake
+        sudo dnf install -y cmake
     else
         print_error "Package manager not supported. Please install CMake manually."
         exit 1
     fi
-fi
-
-# Install OpenCL and ViennaCL dependencies for GPU support
-print_status "Installing GPU development dependencies..."
-if command -v apt-get &> /dev/null; then
-    apt-get install -y ocl-icd-opencl-dev opencl-headers libviennacl-dev
-elif command -v yum &> /dev/null; then
-    yum install -y ocl-icd-opencl-dev opencl-headers libviennacl-dev
-elif command -v dnf &> /dev/null; then
-    dnf install -y ocl-icd-opencl-dev opencl-headers libviennacl-dev
 fi
 
 print_success "CMake found"
@@ -114,12 +104,22 @@ print_success "CMake found"
 CMAKE_VERSION=$(cmake --version | head -n1 | sed 's/cmake version //')
 print_status "CMake version: $CMAKE_VERSION"
 
+# Install OpenCL and ViennaCL dependencies for GPU support
+print_status "Installing GPU development dependencies..."
+if command -v apt-get &> /dev/null; then
+    sudo apt-get install -y ocl-icd-opencl-dev opencl-headers libviennacl-dev
+elif command -v yum &> /dev/null; then
+    sudo yum install -y ocl-icd-opencl-dev opencl-headers libviennacl-dev
+elif command -v dnf &> /dev/null; then
+    sudo dnf install -y ocl-icd-opencl-dev opencl-headers libviennacl-dev
+fi
+
 # Install additional dependencies
 print_status "Installing system dependencies..."
 
 if command -v apt-get &> /dev/null; then
-    apt-get update
-    apt-get install -y \
+    sudo apt-get update
+    sudo apt-get install -y \
         build-essential \
         libatlas-base-dev \
         libprotobuf-dev \
@@ -152,8 +152,8 @@ if command -v apt-get &> /dev/null; then
         unzip \
         bc
 elif command -v yum &> /dev/null; then
-    yum groupinstall -y "Development Tools"
-    yum install -y \
+    sudo yum groupinstall -y "Development Tools"
+    sudo yum install -y \
         atlas-devel \
         protobuf-devel \
         leveldb-devel \
@@ -178,8 +178,8 @@ elif command -v yum &> /dev/null; then
         unzip \
         bc
 elif command -v dnf &> /dev/null; then
-    dnf groupinstall -y "Development Tools"
-    dnf install -y \
+    sudo dnf groupinstall -y "Development Tools"
+    sudo dnf install -y \
         atlas-devel \
         protobuf-devel \
         leveldb-devel \
@@ -231,15 +231,15 @@ else
             cd openpose
             OPENPOSE_DIR="."
         else
-            print_status "No OpenPose found. Cloning to new directory..."
-            cd ..
-            git clone https://github.com/CMU-Perceptual-Computing-Lab/openpose.git openpose_setup
-            cd openpose_setup
+            print_status "No OpenPose found. Cloning to openpose/ subdirectory..."
+            git clone https://github.com/CMU-Perceptual-Computing-Lab/openpose.git openpose
+            cd openpose
             OPENPOSE_DIR="."
         fi
     else
-        print_status "Cloning OpenPose repository..."
-        git clone https://github.com/CMU-Perceptual-Computing-Lab/openpose.git .
+        print_status "Cloning OpenPose repository to openpose/ subdirectory..."
+        git clone https://github.com/CMU-Perceptual-Computing-Lab/openpose.git openpose
+        cd openpose
         OPENPOSE_DIR="."
         print_success "OpenPose repository cloned"
     fi
@@ -290,6 +290,13 @@ else
         print_status "Downloading Caffe 3rd party dependencies..."
         cd 3rdparty/linux
         
+        # Download dependencies
+        deps=(
+            "caffe3rdparty_16_2020_11_14.zip"
+            "caffe_gpu_2018_05_27.zip"
+            "opencv_450_v15_2020_11_18.zip"
+        )
+
         # Clean up any existing corrupted files
         print_status "Cleaning up any existing corrupted files..."
         for dep in "${deps[@]}"; do
@@ -298,13 +305,6 @@ else
                 rm -f "$dep"
             fi
         done
-
-        # Download dependencies
-        deps=(
-            "caffe3rdparty_16_2020_11_14.zip"
-            "caffe_gpu_2018_05_27.zip"
-            "opencv_450_v15_2020_11_18.zip"
-        )
 
         for dep in "${deps[@]}"; do
             if [ ! -f "$dep" ]; then
@@ -508,6 +508,7 @@ echo "- GPU_MODE=CUDA"
 echo "- CUDA_ARCH_BIN=8.6 (for A40 compute capability)"
 echo "- USE_CUDNN=ON"
 echo "- BUILD_CAFFE=ON"
+echo "- OpenPose installed in: openpose/ subdirectory"
 echo ""
 
 print_success "OpenPose GPU setup script completed!"
@@ -538,8 +539,16 @@ echo ""
 # Step 5: ComfyUI Custom Nodes Setup
 print_status "Step 5: Setting up ComfyUI custom nodes for pose transfer workflows..."
 
-# Navigate back to the main directory (should be /workspace/animatediff)
-cd /workspace/animatediff
+# Navigate back to the main directory (should be parent of openpose/)
+if [ -d ".." ] && [ -f "../openpose_gpu_setup.sh" ]; then
+    cd ..
+    print_status "Navigated back to main directory: $(pwd)"
+elif [ -d "/workspace/animatediff" ]; then
+    cd /workspace/animatediff
+    print_status "Navigated to /workspace/animatediff"
+else
+    print_warning "Could not find main project directory. Staying in current directory."
+fi
 
 # Check if ComfyUI is available
 if [ ! -d "ComfyUI" ] && [ ! -f "main.py" ]; then
