@@ -1,0 +1,84 @@
+{
+    "id": "00000000-0000-0000-0000-000000000000", 
+    "revision": 0,
+    "last_node_id": 11,
+    "last_link_id": 15,
+    "nodes": [
+      { "id": 1, "type": "CheckpointLoaderSimple", "pos": [100,130], "size": [270,98],
+        "inputs": [ { "name": "ckpt_name", "type": "COMBO", "widget": { "name": "ckpt_name" } } ],
+        "outputs": [ { "name": "MODEL", "type": "MODEL", "links": [1] },
+                     { "name": "CLIP", "type": "CLIP", "links": [2,3] },
+                     { "name": "VAE", "type": "VAE", "links": [4,10] } ],
+        "widgets_values": ["v1-5-pruned-emaonly.safetensors"]
+      },
+      { "id": 2, "type": "CLIPTextEncode", "pos": [400,50], "size": [400,200],
+        "inputs": [ { "name": "clip", "type": "CLIP", "link": 2 },
+                    { "name": "text", "type": "STRING", "widget": { "name": "text" } } ],
+        "outputs": [ { "name": "CONDITIONING", "type": "CONDITIONING", "links": [5] } ],
+        "widgets_values": ["same people from input image, hugging pose, one hand around neck, other hand on back, preserve faces and clothing, romantic embrace, detailed"]
+      },
+      { "id": 3, "type": "CLIPTextEncode", "pos": [400,300], "size": [400,200],
+        "inputs": [ { "name": "clip", "type": "CLIP", "link": 3 },
+                    { "name": "text", "type": "STRING", "widget": { "name": "text" } } ],
+        "outputs": [ { "name": "CONDITIONING", "type": "CONDITIONING", "links": [6] } ],
+        "widgets_values": ["lowres, blurry, deformed, extra arms, extra hands, bad hands, bad anatomy"]
+      },
+      { "id": 4, "type": "LoadImage", "pos": [100,300], "size": [270,314],
+        "outputs": [ { "name": "IMAGE", "type": "IMAGE", "links": [7] },
+                     { "name": "MASK", "type": "MASK" } ],
+        "widgets_values": ["hug-img.jpg","image"]
+      },
+      { "id": 5, "type": "LoadImage", "pos": [100,500], "size": [270,314],
+        "outputs": [ { "name": "IMAGE", "type": "IMAGE", "links": [8] },
+                     { "name": "MASK", "type": "MASK" } ],
+        "widgets_values": ["perfect_hug_skeleton.png","image"]
+      },
+      { "id": 6, "type": "ControlNetLoader", "pos": [100,750], "size": [270,58],
+        "outputs": [ { "name": "CONTROL_NET", "type": "CONTROL_NET", "links": [9] } ],
+        "widgets_values": ["control_v11p_sd15_openpose.pth"]
+      },
+      { "id": 7, "type": "ControlNetApplyAdvanced", "pos": [850,100], "size": [270,186],
+        "inputs": [ { "name": "positive", "type": "CONDITIONING", "link": 5 },
+                    { "name": "negative", "type": "CONDITIONING", "link": 6 },
+                    { "name": "control_net", "type": "CONTROL_NET", "link": 9 },
+                    { "name": "image", "type": "IMAGE", "link": 8 } ],
+        "outputs": [ { "name": "positive", "type": "CONDITIONING", "links": [11] },
+                     { "name": "negative", "type": "CONDITIONING", "links": [12] } ],
+        "widgets_values": [1.2,0,1]
+      },
+      { "id": 8, "type": "VAEEncode", "pos": [850,400], "size": [140,46],
+        "inputs": [ { "name": "pixels", "type": "IMAGE", "link": 7 },
+                    { "name": "vae", "type": "VAE", "link": 4 } ],
+        "outputs": [ { "name": "LATENT", "type": "LATENT", "links": [13] } ]
+      },
+      { "id": 9, "type": "KSampler", "pos": [1200,100], "size": [270,262],
+        "inputs": [ { "name": "model", "type": "MODEL", "link": 1 },
+                    { "name": "positive", "type": "CONDITIONING", "link": 11 },
+                    { "name": "negative", "type": "CONDITIONING", "link": 12 },
+                    { "name": "latent_image", "type": "LATENT", "link": 13 } ],
+        "outputs": [ { "name": "LATENT", "type": "LATENT", "links": [14] } ],
+        "widgets_values": [0,"randomize",25,8,"dpmpp_2m","karras",0.65]
+      },
+      { "id": 10, "type": "VAEDecode", "pos": [1550,100], "size": [210,46],
+        "inputs": [ { "name": "samples", "type": "LATENT", "link": 14 },
+                    { "name": "vae", "type": "VAE", "link": 10 } ],
+        "outputs": [ { "name": "IMAGE", "type": "IMAGE", "links": [15] } ]
+      },
+      { "id": 11, "type": "SaveImage", "pos": [1850,100], "size": [270,314],
+        "inputs": [ { "name": "images", "type": "IMAGE", "link": 15 } ],
+        "outputs": [],
+        "widgets_values": ["hug_result"]
+      }
+    ],
+    "links": [
+      [1,1,0,9,0,"MODEL"], [2,1,1,2,0,"CLIP"], [3,1,1,3,0,"CLIP"], [4,1,2,8,1,"VAE"],
+      [5,2,0,7,0,"CONDITIONING"], [6,3,0,7,1,"CONDITIONING"], [7,4,0,8,0,"IMAGE"],
+      [8,5,0,7,3,"IMAGE"], [9,6,0,7,2,"CONTROL_NET"], [10,1,2,10,1,"VAE"],
+      [11,7,0,9,1,"CONDITIONING"], [12,7,1,9,2,"CONDITIONING"], [13,8,0,9,3,"LATENT"],
+      [14,9,0,10,0,"LATENT"], [15,10,0,11,0,"IMAGE"]
+    ],
+    "groups": [],
+    "config": {},
+    "extra": { "ds": { "scale": 0.62, "offset": [653.24, 328.45] } },
+    "version": 0.4
+  }

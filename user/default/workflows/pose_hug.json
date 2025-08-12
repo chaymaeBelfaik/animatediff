@@ -1,7 +1,7 @@
 {
   "id": "00000000-0000-0000-0000-000000000000",
   "revision": 0,
-  "last_node_id": 17,
+  "last_node_id": 14,
   "last_link_id": 42,
   "nodes": [
     {
@@ -88,7 +88,7 @@
         }
       ],
       "widgets_values": [
-        "two people hugging, emotional moment, cinematic light, realistic, detailed"
+        "two people hugging each other, warm embrace, realistic faces, detailed anatomy, high quality, photorealistic, clear features, proper proportions"
       ]
     },
     {
@@ -126,7 +126,7 @@
         }
       ],
       "widgets_values": [
-        "lowres, blurry, deformed, extra arms, extra hands, bad hands, bad anatomy"
+        "lowres, blurry, deformed, extra arms, extra hands, bad hands, bad anatomy, distorted face, unclear features, extra limbs, missing limbs, floating limbs, disconnected limbs, malformed hands, poorly drawn face"
       ]
     },
     {
@@ -301,10 +301,7 @@
           "type": "MASK"
         }
       ],
-      "widgets_values": [
-        "pose_hug.jpg",
-        "image"
-      ]
+
     },
     {
       "id": 8,
@@ -385,7 +382,7 @@
         }
       ],
       "widgets_values": [
-        1.9,
+        1.2,
         0,
         1
       ]
@@ -435,11 +432,11 @@
       "widgets_values": [
         0,
         "randomize",
-        20,
-        6,
-        "euler",
-        "normal",
-        0.65
+        25,
+        7.5,
+        "dpmpp_2m",
+        "karras",
+        0.75
       ]
     },
     {
@@ -550,7 +547,7 @@
     },
     {
       "id": 14,
-      "type": "OpenposePreprocessor",
+      "type": "LoadImage",
       "pos": [
         430,
         620
@@ -559,13 +556,7 @@
         300,
         140
       ],
-      "inputs": [
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "link": 35
-        }
-      ],
+      "inputs": [],
       "outputs": [
         {
           "name": "IMAGE",
@@ -575,123 +566,13 @@
           ]
         },
         {
-          "name": "POSE_KEYPOINT",
-          "type": "POSE_KEYPOINT"
+          "name": "MASK",
+          "type": "MASK"
         }
       ],
-      "widgets_values": [
-        "enable",
-        "enable",
-        "enable",
-        1024,
-        "disable"
-      ]
-    },
-    {
-      "id": 15,
-      "type": "DepthAnythingV2Preprocessor",
-      "pos": [
-        430,
-        820
-      ],
-      "size": [
-        320,
-        120
-      ],
-      "inputs": [
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "link": 38
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": []
-        }
-      ],
-      "widgets_values": [
-        "depth_anything_v2_vitl.pth",
-        1024
-      ]
-    },
-    {
-      "id": 16,
-      "type": "ControlNetLoader",
-      "pos": [
-        100,
-        900
-      ],
-      "size": [
-        286,
-        58
-      ],
-      "outputs": [
-        {
-          "name": "CONTROL_NET",
-          "type": "CONTROL_NET",
-          "links": []
-        }
-      ],
-      "widgets_values": [
-        "control_sd15_depth.pth"
-      ]
-    },
-    {
-      "id": 17,
-      "type": "ControlNetApplyAdvanced",
-      "pos": [
-        1220,
-        130
-      ],
-      "size": [
-        270,
-        186
-      ],
-      "inputs": [
-        {
-          "name": "positive",
-          "type": "CONDITIONING",
-          "link": 39
-        },
-        {
-          "name": "negative",
-          "type": "CONDITIONING",
-          "link": 40
-        },
-        {
-          "name": "control_net",
-          "type": "CONTROL_NET",
-          "link": 41
-        },
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "link": 42
-        }
-      ],
-      "outputs": [
-        {
-          "name": "positive",
-          "type": "CONDITIONING",
-          "links": [
-            27
-          ]
-        },
-        {
-          "name": "negative",
-          "type": "CONDITIONING",
-          "links": [
-            28
-          ]
-        }
-      ],
-      "widgets_values": [
-        0.8,
-        0,
-        1
+            "widgets_values": [
+        "perfect_hug_skeleton.png",
+        "image"
       ]
     }
   ],
@@ -769,22 +650,6 @@
       "MODEL"
     ],
     [
-      27,
-      17,
-      0,
-      10,
-      1,
-      "CONDITIONING"
-    ],
-    [
-      28,
-      17,
-      1,
-      10,
-      2,
-      "CONDITIONING"
-    ],
-    [
       30,
       1,
       2,
@@ -825,14 +690,6 @@
       "LATENT"
     ],
     [
-      35,
-      7,
-      0,
-      14,
-      0,
-      "IMAGE"
-    ],
-    [
       36,
       14,
       0,
@@ -849,44 +706,20 @@
       "VAE"
     ],
     [
-      38,
-      7,
-      0,
-      15,
-      0,
-      "IMAGE"
-    ],
-    [
-      39,
+      27,
       9,
       0,
-      17,
-      0,
-      "CONDITIONING"
-    ],
-    [
-      40,
-      9,
-      1,
-      17,
+      10,
       1,
       "CONDITIONING"
     ],
     [
-      41,
-      16,
-      0,
-      17,
+      28,
+      9,
+      1,
+      10,
       2,
-      "CONTROL_NET"
-    ],
-    [
-      42,
-      15,
-      0,
-      17,
-      3,
-      "IMAGE"
+      "CONDITIONING"
     ]
   ],
   "groups": [],
