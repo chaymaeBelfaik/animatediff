@@ -1,9 +1,10 @@
 #!/bin/bash
 
-# Complete OpenPose + ComfyUI Setup Script for Linux
+# Complete OpenPose + ComfyUI Setup Script for Linux (No Sudo Version)
 # This script automates the setup process for OpenPose on Linux with CUDA GPU support
 # AND sets up ComfyUI with AnimateDiff and VideoHelper custom nodes for pose transfer workflows
 # Based on the successful setup process completed on 2025-08-12
+# Modified to remove sudo commands for root users
 
 set -e  # Exit on any error
 
@@ -86,12 +87,12 @@ print_success "Git found"
 if ! command -v cmake &> /dev/null; then
     print_status "CMake not found. Installing CMake..."
     if command -v apt-get &> /dev/null; then
-        sudo apt-get update
-        sudo apt-get install -y cmake
+        apt-get update
+        apt-get install -y cmake
     elif command -v yum &> /dev/null; then
-        sudo yum install -y cmake
+        yum install -y cmake
     elif command -v dnf &> /dev/null; then
-        sudo dnf install -y cmake
+        dnf install -y cmake
     else
         print_error "Package manager not supported. Please install CMake manually."
         exit 1
@@ -107,19 +108,19 @@ print_status "CMake version: $CMAKE_VERSION"
 # Install OpenCL and ViennaCL dependencies for GPU support
 print_status "Installing GPU development dependencies..."
 if command -v apt-get &> /dev/null; then
-    sudo apt-get install -y ocl-icd-opencl-dev opencl-headers libviennacl-dev
+    apt-get install -y ocl-icd-opencl-dev opencl-headers libviennacl-dev
 elif command -v yum &> /dev/null; then
-    sudo yum install -y ocl-icd-opencl-dev opencl-headers libviennacl-dev
+    yum install -y ocl-icd-opencl-dev opencl-headers libviennacl-dev
 elif command -v dnf &> /dev/null; then
-    sudo dnf install -y ocl-icd-opencl-dev opencl-headers libviennacl-dev
+    dnf install -y ocl-icd-opencl-dev opencl-headers libviennacl-dev
 fi
 
 # Install additional dependencies
 print_status "Installing system dependencies..."
 
 if command -v apt-get &> /dev/null; then
-    sudo apt-get update
-    sudo apt-get install -y \
+    apt-get update
+    apt-get install -y \
         build-essential \
         libatlas-base-dev \
         libprotobuf-dev \
@@ -152,8 +153,8 @@ if command -v apt-get &> /dev/null; then
         unzip \
         bc
 elif command -v yum &> /dev/null; then
-    sudo yum groupinstall -y "Development Tools"
-    sudo yum install -y \
+    yum groupinstall -y "Development Tools"
+    yum install -y \
         atlas-devel \
         protobuf-devel \
         leveldb-devel \
@@ -178,8 +179,8 @@ elif command -v yum &> /dev/null; then
         unzip \
         bc
 elif command -v dnf &> /dev/null; then
-    sudo dnf groupinstall -y "Development Tools"
-    sudo dnf install -y \
+    dnf groupinstall -y "Development Tools"
+    dnf install -y \
         atlas-devel \
         protobuf-devel \
         leveldb-devel \
@@ -358,13 +359,29 @@ if [ -d "build" ]; then
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         print_status "Reusing existing build directory..."
         cd build
-        # Check if CMake cache exists
+        # Check if CMake cache exists and if it has Python bindings enabled
         if [ -f "CMakeCache.txt" ]; then
-            print_status "CMake cache found. You can run 'make' directly or reconfigure."
-            print_status "To reconfigure, run: rm -rf build && ./openpose_gpu_setup.sh"
+            if grep -q "BUILD_PYTHON:BOOL=ON" "CMakeCache.txt"; then
+                print_warning "Existing build has Python bindings enabled - this may cause build failures"
+                print_status "Recommendation: Remove build directory and reconfigure without Python"
+                read -p "Remove build directory and reconfigure? (y/n): " -n 1 -r
+                echo
+                if [[ $REPLY =~ ^[Yy]$ ]]; then
+                    cd ..
+                    rm -rf build
+                    mkdir build
+                    cd build
+                    print_status "Build directory recreated for clean configuration"
+                else
+                    print_status "Using existing build directory (may have compatibility issues)"
+                fi
+            else
+                print_status "CMake cache found with Python bindings disabled - safe to use"
+            fi
         fi
     else
         print_status "Removing existing build directory..."
+        cd ..
         rm -rf build
         mkdir build
         cd build
@@ -378,36 +395,42 @@ fi
 # Configure with CMake (GPU support)
 print_status "Running CMake configuration with GPU support..."
 
-# Detect CUDA architecture based on installed GPU
-CUDA_ARCH=""
-if command -v nvidia-smi &> /dev/null; then
-    GPU_NAME=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader,nounits | head -1)
-    if [[ "$GPU_NAME" == "8.9" ]]; then
-        CUDA_ARCH="8.9"
-    elif [[ "$GPU_NAME" == "8.6" ]]; then
-        CUDA_ARCH="8.6"
-    elif [[ "$GPU_NAME" == "8.0" ]]; then
-        CUDA_ARCH="8.0"
-    elif [[ "$GPU_NAME" == "7.5" ]]; then
-        CUDA_ARCH="7.5"
-    elif [[ "$GPU_NAME" == "7.0" ]]; then
-        CUDA_ARCH="7.0"
-    elif [[ "$GPU_NAME" == "6.1" ]]; then
-        CUDA_ARCH="6.1"
-    elif [[ "$GPU_NAME" == "6.0" ]]; then
-        CUDA_ARCH="6.0"
-    else
-        # Default to common architectures
-        CUDA_ARCH="6.0,6.1,7.0,7.5,8.0,8.6,8.9"
-    fi
-    print_success "Detected GPU compute capability: $GPU_NAME"
+# Force CUDA architecture to 8.6 for optimal performance
+CUDA_ARCH="8.6"
+print_status "Using CUDA architecture: $CUDA_ARCH"
+
+# First CMake configuration
+print_status "Running first CMake configuration..."
+cmake .. -DGPU_MODE=CUDA -DUSE_CUDNN=ON -DCUDA_ARCH_BIN=8.6 -DUSE_OPENCV=ON -DBUILD_CAFFE=ON -DBUILD_PYTHON=OFF
+
+# Second CMake configuration for redundancy
+print_status "Running second CMake configuration for redundancy..."
+cmake .. -DGPU_MODE=CUDA -DUSE_CUDNN=ON -DCUDA_ARCH_BIN=8.6 -DUSE_OPENCV=ON -DBUILD_CAFFE=ON -DBUILD_PYTHON=OFF
+
+# Final CMake configuration with all options (Python disabled for compatibility)
+print_status "Running final CMake configuration with all options..."
+print_status "Note: Python bindings disabled due to Python 3.11 compatibility issues"
+print_status "This ensures successful build. You can still use Python with the compiled C++ executables."
+
+# Check Python version and provide compatibility info
+PYTHON_VERSION=$(python3 --version 2>/dev/null | cut -d' ' -f2 | cut -d'.' -f1,2 || echo "unknown")
+if [[ "$PYTHON_VERSION" == "3.11" ]]; then
+    print_warning "Python 3.11 detected - Python bindings disabled for compatibility"
+    print_status "To enable Python bindings, use Python 3.10 or update pybind11"
+    print_status "Current build uses C++ only for maximum compatibility"
+elif [[ "$PYTHON_VERSION" == "3.10" ]]; then
+    print_status "Python 3.10 detected - Python bindings could be enabled"
+    print_status "Current build uses C++ only for maximum compatibility"
 else
-    # Default to common architectures if nvidia-smi not available
-    CUDA_ARCH="6.0,6.1,7.0,7.5,8.0,8.6,8.9"
-    print_warning "nvidia-smi not available, using default CUDA architectures"
+    print_status "Python version: $PYTHON_VERSION - Python bindings disabled"
 fi
 
-print_status "Using CUDA architecture: $CUDA_ARCH"
+# Additional Python compatibility check
+if [[ "$PYTHON_VERSION" == "3.11" ]] || [[ "$PYTHON_VERSION" == "3.12" ]]; then
+    print_warning "Python $PYTHON_VERSION detected - this version has known compatibility issues with OpenPose"
+    print_status "Recommendation: Use Python 3.10 or earlier, or build without Python bindings"
+    print_status "Current configuration: BUILD_PYTHON=OFF (safe for all Python versions)"
+fi
 
 cmake .. \
     -DGPU_MODE=CUDA \
@@ -418,7 +441,7 @@ cmake .. \
     -DCUDNN_INCLUDE_DIR=/usr/local/cuda/include \
     -DCUDNN_LIBRARY=/usr/local/cuda/lib64/libcudnn.so \
     -DBUILD_CAFFE=ON \
-    -DBUILD_PYTHON=ON \
+    -DBUILD_PYTHON=OFF \
     -DUSE_OPENCV=ON \
     -DUSE_OPENMP=ON \
     -DUSE_MPI=OFF
@@ -451,16 +474,36 @@ if [ -f "CMakeCache.txt" ] && [ -f "Makefile" ]; then
         print_status "Build command: make -j$(nproc)"
         echo ""
         
+        # Start the build with progress monitoring
+        print_status "Build started at: $(date)"
+        print_status "Monitoring build progress..."
+        
         # Start the build
         make -j$(nproc)
+        BUILD_EXIT_CODE=$?
         
-        if [ $? -eq 0 ]; then
+        print_status "Build completed at: $(date)"
+        
+        if [ $BUILD_EXIT_CODE -eq 0 ]; then
             print_success "OpenPose build completed successfully!"
-            print_status "You can now test your installation:"
-            print_status "cd bin && ./OpenPoseDemo --help"
+            
+            # Check if binaries were created
+            if [ -f "bin/openpose.bin" ] || [ -f "bin/OpenPoseDemo" ]; then
+                print_success "OpenPose binaries created successfully!"
+                print_status "You can now test your installation:"
+                print_status "cd bin && ./openpose.bin --help"
+            else
+                print_warning "Build succeeded but binaries not found in expected location"
+                print_status "Checking bin directory contents..."
+                ls -la bin/ 2>/dev/null || print_error "bin directory not found"
+            fi
         else
-            print_error "Build failed. Check the output above for errors."
-            print_status "You can try building again with: make -j$(nproc)"
+            print_error "Build failed with exit code: $BUILD_EXIT_CODE"
+            print_status "Common solutions:"
+            print_status "1. Check available memory: free -h"
+            print_status "2. Try building with fewer cores: make -j4"
+            print_status "3. Check CUDA installation: nvidia-smi"
+            print_status "4. Reconfigure without Python: rm -rf build && run script again"
         fi
     else
         print_status "Build skipped. You can build later with: make -j$(nproc)"
@@ -508,7 +551,23 @@ echo "- GPU_MODE=CUDA"
 echo "- CUDA_ARCH_BIN=8.6 (for A40 compute capability)"
 echo "- USE_CUDNN=ON"
 echo "- BUILD_CAFFE=ON"
+echo "- BUILD_PYTHON=OFF (for Python 3.11 compatibility)"
 echo "- OpenPose installed in: openpose/ subdirectory"
+echo ""
+echo "🎯 Skeleton Extraction Commands (after build completes):"
+echo "========================================================"
+echo "1. Extract 16 frames from video:"
+echo "   ffmpeg -i input_video.mp4 -vf \"select='not(mod(n,floor(n_frames/16)))'\" -vsync vfr frame_%03d.jpg"
+echo ""
+echo "2. Process with OpenPose:"
+echo "   cd openpose/build/bin"
+echo "   ./openpose.bin --image_dir ../../../frame_*.jpg --write_json ../../../skeletons/ --number_people_max 1"
+echo ""
+echo "3. Or process video directly:"
+echo "   ./openpose.bin --video ../../../input_video.mp4 --write_json ../../../skeletons/ --frame_rate 16"
+echo ""
+echo "4. Test installation:"
+echo "   ./openpose.bin --help"
 echo ""
 
 print_success "OpenPose GPU setup script completed!"
@@ -602,7 +661,38 @@ else
     cd ..  # Back to /workspace/animatediff
 fi
 
+# Clean up temporary files
+print_status "Cleaning up temporary files..."
+if [ -f "get-docker.sh" ]; then
+    rm -f get-docker.sh
+    print_status "Removed Docker installation script (no longer needed)"
+fi
+
 print_success "Complete OpenPose + ComfyUI setup script completed!"
 print_status "All components are now configured for pose transfer workflows"
+
+# Final summary and next steps
+echo ""
+echo "🎉 Setup Complete! Here's what to do next:"
+echo "=========================================="
+echo ""
+echo "1. If build completed successfully:"
+echo "   cd openpose/build/bin"
+echo "   ./openpose.bin --help"
+echo ""
+echo "2. If you need to rebuild:"
+echo "   cd openpose"
+echo "   rm -rf build"
+echo "   ./openpose_gpu_setup_no_sudo.sh"
+echo ""
+echo "3. For skeleton extraction:"
+echo "   # Extract 16 frames from video"
+echo "   ffmpeg -i input.mp4 -vf \"select='not(mod(n,floor(n_frames/16)))'\" -vsync vfr frame_%03d.jpg"
+echo "   # Process with OpenPose"
+echo "   ./openpose.bin --image_dir ../../../frame_*.jpg --write_json ../../../skeletons/"
+echo ""
+echo "4. Test GPU acceleration:"
+echo "   ./openpose.bin --video ../../../input.mp4 --display 0 --write_video output.avi"
+echo ""
 
 exit 0
