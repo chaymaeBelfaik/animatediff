@@ -1,0 +1,35 @@
+{
+  "frames_generated": 16,
+  "frame_width": 512,
+  "frame_height": 512,
+  "people_count": 2,
+  "motion_phases": [
+    "Two people walking toward each other",
+    "Approaching with arms extending",
+    "Embracing in warm hug"
+  ],
+  "walking_features": [
+    "Alternating leg movement",
+    "Subtle forward arm motion",
+    "Natural step progression"
+  ],
+  "hugging_features": [
+    "Arms wrap around shoulders and backs",
+    "Heads gently inclined toward each other",
+    "Natural embrace motion"
+  ],
+  "joint_types": [
+    "head",
+    "shoulder",
+    "elbow",
+    "wrist",
+    "hip",
+    "knee",
+    "ankle"
+  ],
+  "style": "stick_figure_with_clear_joints",
+  "motion_description": "Two people taking small steps toward each other with alternating leg movement and subtle forward arm motion, progressing to warm hug",
+  "video_created": "two_person_hugging_sequence.mp4",
+  "timestamp": "2025-08-15T10:00:21",
+  "method": "proper_two_person_walking_and_hugging"
+}

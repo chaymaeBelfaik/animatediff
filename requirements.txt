@@ -21,6 +21,9 @@ psutil
 alembic
 SQLAlchemy
 
+# MediaPipe for pose detection (replaces OpenPose)
+mediapipe>=0.10.0
+
 #non essential dependencies:
 kornia>=0.7.1
 spandrel
